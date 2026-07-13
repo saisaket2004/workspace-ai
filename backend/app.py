@@ -110,6 +110,16 @@ async def on_startup():
     logger.info("=" * 60)
 
     # Deployment Validation
+    import os
+    credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if credentials_json:
+        try:
+            logger.info("  Recreating credentials.json from GOOGLE_CREDENTIALS_JSON env var...")
+            settings.CREDENTIALS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            settings.CREDENTIALS_FILE.write_text(credentials_json)
+        except Exception as e:
+            logger.error(f"[WARNING] Failed to write credentials.json: {e}")
+            
     if not settings.GEMINI_API_KEY:
         logger.warning("[WARNING] GEMINI_API_KEY is missing! AI agent will fail.")
         

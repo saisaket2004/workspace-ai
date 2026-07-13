@@ -27,10 +27,17 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# ── Client ─────────────────────────────────────────────────────────────
-client = genai.Client(
-    api_key=settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY"),
-)
+_client = None
+
+def get_client() -> genai.Client:
+    """Lazily initializes the Gemini client only when needed."""
+    global _client
+    if _client is None:
+        api_key = settings.GEMINI_API_KEY or os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise RuntimeError("GEMINI_API_KEY environment variable is missing.")
+        _client = genai.Client(api_key=api_key)
+    return _client
 
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 
@@ -85,7 +92,7 @@ def with_retry(func):
 
 @with_retry
 def _generate_content_with_retry(*args, **kwargs):
-    return client.models.generate_content(*args, **kwargs)
+    return get_client().models.generate_content(*args, **kwargs)
 
 def ask_gemini(prompt: str) -> str:
     """Send a prompt to Gemini and return the text response."""

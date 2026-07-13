@@ -107,26 +107,23 @@ async def on_startup():
     logger.info("=" * 60)
     logger.info("  Workspace AI Assistant v2.0.0")
     logger.info("  Endpoints registered: %d", len(app.routes))
-    logger.info("=" * 60)
-
     # Deployment Validation
     import os
     credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
     if credentials_json:
-        try:
-            logger.info("  Recreating credentials.json from GOOGLE_CREDENTIALS_JSON env var...")
-            settings.CREDENTIALS_FILE.parent.mkdir(parents=True, exist_ok=True)
-            settings.CREDENTIALS_FILE.write_text(credentials_json)
-        except Exception as e:
-            logger.error(f"[WARNING] Failed to write credentials.json: {e}")
-            
+        logger.info("  [Session] OAuth credentials loaded from environment (GOOGLE_CREDENTIALS_JSON)")
+    else:
+        if settings.CREDENTIALS_FILE.exists():
+            logger.info(f"  [Session] OAuth credentials loaded from local file: {settings.CREDENTIALS_FILE}")
+        else:
+            logger.warning("[WARNING] No GOOGLE_CREDENTIALS_JSON or local credentials.json found!")
+            logger.warning("[WARNING] OAuth Login will fail.")
+
     if not settings.GEMINI_API_KEY:
         logger.warning("[WARNING] GEMINI_API_KEY is missing! AI agent will fail.")
-        
-    if not settings.CREDENTIALS_FILE.exists():
-        logger.warning(f"[WARNING] Google OAuth credentials file missing: {settings.CREDENTIALS_FILE}")
-        logger.warning("[WARNING] OAuth Login will fail.")
+    else:
+        logger.info("  [Gemini] API Key found.")
 
-    logger.info(f"  Frontend URL: {settings.FRONTEND_URL}")
-    logger.info(f"  Redirect URI: {settings.REDIRECT_URI}")
+    logger.info(f"  [Config] Frontend URL configured: {settings.FRONTEND_URL}")
+    logger.info(f"  [Config] Redirect URI configured: {settings.REDIRECT_URI}")
     logger.info("=" * 60)

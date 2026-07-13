@@ -38,18 +38,47 @@ router = APIRouter()
 
 REDIRECT_URI = settings.REDIRECT_URI
 
+import json
+
+def _get_oauth_flow(state=None):
+    """
+    Helper to initialize the Google OAuth Flow.
+    Supports both environment variable injection (for Production)
+    and local file fallback (for Development).
+    """
+    credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    
+    if credentials_json:
+        # Production: Create Flow from memory
+        client_config = json.loads(credentials_json)
+        return Flow.from_client_config(
+            client_config,
+            scopes=SCOPES,
+            state=state,
+            redirect_uri=REDIRECT_URI,
+            autogenerate_code_verifier=False,
+        )
+    else:
+        # Development: Create Flow from local credentials file
+        if not CREDENTIALS_FILE.exists():
+            raise FileNotFoundError(f"Missing local file: {CREDENTIALS_FILE}")
+            
+        return Flow.from_client_secrets_file(
+            str(CREDENTIALS_FILE),
+            scopes=SCOPES,
+            state=state,
+            redirect_uri=REDIRECT_URI,
+            autogenerate_code_verifier=False,
+        )
+
+
 # ── Login ──────────────────────────────────────────────────────────────
 
 @router.get("/login")
 def login():
     """Redirect the user to Google's OAuth consent screen."""
     try:
-        flow = Flow.from_client_secrets_file(
-            str(CREDENTIALS_FILE),
-            scopes=SCOPES,
-            redirect_uri=REDIRECT_URI,
-            autogenerate_code_verifier=False,
-        )
+        flow = _get_oauth_flow()
     except FileNotFoundError:
         logger.error(f"Credentials file missing: {CREDENTIALS_FILE}")
         return JSONResponse(
@@ -84,13 +113,7 @@ def auth_callback(request: Request):
     state_from_url = request.query_params.get("state")
     
     try:
-        flow = Flow.from_client_secrets_file(
-            str(CREDENTIALS_FILE),
-            scopes=SCOPES,
-            state=state_from_url,
-            redirect_uri=REDIRECT_URI,
-            autogenerate_code_verifier=False,
-        )
+        flow = _get_oauth_flow(state=state_from_url)
     except FileNotFoundError:
         logger.error(f"Credentials file missing: {CREDENTIALS_FILE}")
         return JSONResponse(

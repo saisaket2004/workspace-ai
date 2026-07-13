@@ -24,12 +24,20 @@ class Settings(BaseSettings):
 
     # ── Paths ──────────────────────────────────────────────────────────
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
-    CREDENTIALS_FILE: Path = Path(__file__).resolve().parent.parent / "credentials" / "credentials.json"
+    CREDENTIALS_FILE: Path = Path(
+        os.getenv("GOOGLE_CREDENTIALS_FILE", str(BASE_DIR / "credentials" / "credentials.json"))
+    )
     DOWNLOAD_FOLDER: str = "downloads"
 
     # ── Google OAuth ───────────────────────────────────────────────────
-    REDIRECT_URI: str = "http://localhost:8000/auth/callback"
-    FRONTEND_URL: str = "http://localhost:5173"
+    REDIRECT_URI: str = os.getenv(
+        "REDIRECT_URI",
+        "http://localhost:8000/auth/callback",
+    )
+    FRONTEND_URL: str = os.getenv(
+        "FRONTEND_URL",
+        "http://localhost:5173",
+    )
 
     SCOPES: List[str] = [
         # Drive

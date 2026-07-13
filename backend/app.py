@@ -44,11 +44,14 @@ app = FastAPI(
 )
 
 # ── CORS ───────────────────────────────────────────────────────────────
+from backend.config import settings
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        settings.FRONTEND_URL,
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -104,4 +107,16 @@ async def on_startup():
     logger.info("=" * 60)
     logger.info("  Workspace AI Assistant v2.0.0")
     logger.info("  Endpoints registered: %d", len(app.routes))
+    logger.info("=" * 60)
+
+    # Deployment Validation
+    if not settings.GEMINI_API_KEY:
+        logger.warning("[WARNING] GEMINI_API_KEY is missing! AI agent will fail.")
+        
+    if not settings.CREDENTIALS_FILE.exists():
+        logger.warning(f"[WARNING] Google OAuth credentials file missing: {settings.CREDENTIALS_FILE}")
+        logger.warning("[WARNING] OAuth Login will fail.")
+
+    logger.info(f"  Frontend URL: {settings.FRONTEND_URL}")
+    logger.info(f"  Redirect URI: {settings.REDIRECT_URI}")
     logger.info("=" * 60)

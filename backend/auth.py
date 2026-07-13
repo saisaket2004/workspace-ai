@@ -43,12 +43,19 @@ REDIRECT_URI = settings.REDIRECT_URI
 @router.get("/login")
 def login():
     """Redirect the user to Google's OAuth consent screen."""
-    flow = Flow.from_client_secrets_file(
-        str(CREDENTIALS_FILE),
-        scopes=SCOPES,
-        redirect_uri=REDIRECT_URI,
-        autogenerate_code_verifier=False,
-    )
+    try:
+        flow = Flow.from_client_secrets_file(
+            str(CREDENTIALS_FILE),
+            scopes=SCOPES,
+            redirect_uri=REDIRECT_URI,
+            autogenerate_code_verifier=False,
+        )
+    except FileNotFoundError:
+        logger.error(f"Credentials file missing: {CREDENTIALS_FILE}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Server Configuration Error: Google OAuth credentials file missing."},
+        )
 
     authorization_url, state = flow.authorization_url(
         access_type="offline",
@@ -76,13 +83,20 @@ def auth_callback(request: Request):
     # This makes the callback completely resilient to server restarts during development
     state_from_url = request.query_params.get("state")
     
-    flow = Flow.from_client_secrets_file(
-        str(CREDENTIALS_FILE),
-        scopes=SCOPES,
-        state=state_from_url,
-        redirect_uri=REDIRECT_URI,
-        autogenerate_code_verifier=False,
-    )
+    try:
+        flow = Flow.from_client_secrets_file(
+            str(CREDENTIALS_FILE),
+            scopes=SCOPES,
+            state=state_from_url,
+            redirect_uri=REDIRECT_URI,
+            autogenerate_code_verifier=False,
+        )
+    except FileNotFoundError:
+        logger.error(f"Credentials file missing: {CREDENTIALS_FILE}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Server Configuration Error: Google OAuth credentials file missing."},
+        )
 
     # Restore PKCE code verifier (if any)
     if session_manager.oauth_code_verifier:

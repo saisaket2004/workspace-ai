@@ -95,6 +95,7 @@ def login():
     session_manager.oauth_state = state
     session_manager.oauth_code_verifier = ""
 
+    logger.info("Authorization URL: %s", authorization_url)
     return RedirectResponse(authorization_url)
 
 
